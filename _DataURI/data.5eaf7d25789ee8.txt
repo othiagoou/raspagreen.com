@@ -1,0 +1,1 @@
+chrome-extension://ahkjpbeeocnddjkakilopmfdlnjdpcdm/content/protectable_element_detector.js
