@@ -1,52 +1,66 @@
+const API_BASE_URL = "https://raspagreen-backend-plv5.onrender.com";
+
 exports.handler = async (event, context) => {
-  // Handle CORS preflight
+  // Tratamento do preflight CORS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
       },
       body: ''
-    }
+    };
   }
 
-  // ✅ Defina seu token JWT AQUI
-  const JWT_TOKEN = 'e603dcd57f5b17f86de975264ce1e6a3'; // Substitua pelo seu token real
+  const method = event.httpMethod;
+  const path = event.rawUrl.replace(event.headers.origin, '').replace(/\/.netlify\/functions\/run/, '');
 
-  // Chamada à API protegida
+  // Monta a URL final da API que será chamada
+  const url = `${API_BASE_URL}${path}`;
+
+  // Constrói headers (com JWT incluso)
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.JWT_TOKEN}`,
+  };
+
+  // Prepara o body se for POST ou PUT
+  let body = undefined;
+  if (['POST', 'PUT'].includes(method) && event.body) {
+    body = event.body;
+  }
+
   try {
-    const response = await fetch('https://raspagreen-backend-plv5.onrender.com/usuario/dados', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${JWT_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await fetch(url, {
+      method,
+      headers,
+      body,
     });
 
-    const result = await response.json();
+    const responseData = await response.json();
 
     return {
       statusCode: response.status,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify(result)
+      body: JSON.stringify(responseData),
     };
   } catch (error) {
     return {
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({
         success: false,
-        message: 'Erro ao acessar API',
-        error: error.message
-      })
+        error: 'Erro ao conectar com a API',
+        detail: error.message,
+      }),
     };
   }
 };
