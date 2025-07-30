@@ -12,53 +12,41 @@ exports.handler = async (event, context) => {
     }
   }
 
-  // Accept both GET and POST methods
-  if (event.httpMethod === 'GET' || event.httpMethod === 'POST') {
-    let requestData = null
-    
-    // Parse POST body if present
-    if (event.httpMethod === 'POST' && event.body) {
-      try {
-        requestData = JSON.parse(event.body)
-      } catch (e) {
-        requestData = event.body
+  // ✅ Defina seu token JWT AQUI
+  const JWT_TOKEN = 'e603dcd57f5b17f86de975264ce1e6a3'; // Substitua pelo seu token real
+
+  // Chamada à API protegida
+  try {
+    const response = await fetch('https://raspagreen-backend-plv5.onrender.com/usuario/dados', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${JWT_TOKEN}`,
+        'Content-Type': 'application/json'
       }
-    }
+    });
+
+    const result = await response.json();
 
     return {
-      statusCode: 200,
+      statusCode: response.status,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(result)
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({
-        success: true,
-        message: 'Run endpoint disponível',
-        data: {
-          status: 'ok',
-          timestamp: new Date().toISOString(),
-          method: event.httpMethod,
-          deployed: true,
-          requestData: requestData,
-          fixed: 'Now accepts both GET and POST'
-        }
+        success: false,
+        message: 'Erro ao acessar API',
+        error: error.message
       })
-    }
+    };
   }
-
-  // Method not allowed
-  return {
-    statusCode: 405,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify({
-      success: false,
-      error: 'Method not allowed',
-      allowedMethods: ['GET', 'POST', 'OPTIONS']
-    })
-  }
-}
+};
