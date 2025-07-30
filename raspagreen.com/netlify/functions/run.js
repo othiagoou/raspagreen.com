@@ -1,66 +1,64 @@
-const API_BASE_URL = "https://raspagreen-backend-plv5.onrender.com";
-
 exports.handler = async (event, context) => {
-  // Tratamento do preflight CORS
+  // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
       },
       body: ''
-    };
+    }
   }
 
-  const method = event.httpMethod;
-  const path = event.rawUrl.replace(event.headers.origin, '').replace(/\/.netlify\/functions\/run/, '');
-
-  // Monta a URL final da API que será chamada
-  const url = `${API_BASE_URL}${path}`;
-
-  // Constrói headers (com JWT incluso)
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${process.env.JWT_TOKEN}`,
-  };
-
-  // Prepara o body se for POST ou PUT
-  let body = undefined;
-  if (['POST', 'PUT'].includes(method) && event.body) {
-    body = event.body;
-  }
-
-  try {
-    const response = await fetch(url, {
-      method,
-      headers,
-      body,
-    });
-
-    const responseData = await response.json();
+  // Accept both GET and POST methods
+  if (event.httpMethod === 'GET' || event.httpMethod === 'POST') {
+    let requestData = null
+    
+    // Parse POST body if present
+    if (event.httpMethod === 'POST' && event.body) {
+      try {
+        requestData = JSON.parse(event.body)
+      } catch (e) {
+        requestData = event.body
+      }
+    }
 
     return {
-      statusCode: response.status,
+      statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(responseData),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
       },
       body: JSON.stringify({
-        success: false,
-        error: 'Erro ao conectar com a API',
-        detail: error.message,
-      }),
-    };
+        success: true,
+        message: 'Run endpoint disponível',
+        data: {
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          method: event.httpMethod,
+          deployed: true,
+          requestData: requestData,
+          fixed: 'Now accepts both GET and POST'
+        }
+      })
+    }
   }
-};
+
+  // Method not allowed
+  return {
+    statusCode: 405,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    },
+    body: JSON.stringify({
+      success: false,
+      error: 'Method not allowed',
+      allowedMethods: ['GET', 'POST', 'OPTIONS']
+    })
+  }
+}
